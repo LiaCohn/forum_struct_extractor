@@ -81,19 +81,29 @@ GROQ_API_KEY=your_api_key
 python forum_extractor_hybrid.py --url https://example.com/forum
 ```
 
-Concrete run against a real public forum (the official XenForo community board):
+This fetches the page with Playwright, detects the thread rows, and prints the JSON selectors.
+
+### Reference URLs from the brief
+
+Two real forum URLs the extractor was tested against:
 
 ```bash
-python forum_extractor_hybrid.py --url https://xenforo.com/community/whats-new/posts --debug
-```
+# Works as a live URL — Altenen serves the rendered HTML directly.
+python forum_extractor_hybrid.py --url https://altenens.is/whats-new/posts --debug
 
-This fetches the page with Playwright, detects the thread rows, and prints the JSON selectors plus a preview of the first few extracted rows.
+# This board is behind a Cloudflare JS challenge, so headless Playwright
+# gets the "Just a moment..." page instead of the forum. The supported
+# workflow is to save the rendered HTML from a real browser, then run:
+python forum_extractor_hybrid.py --file whats_new.html --debug
+```
 
 ## Local HTML file
 
 ```bash
 python forum_extractor_hybrid.py --file forum.html
 ```
+
+This is the recommended workflow for any page behind anti-bot protection (Cloudflare, BunnyCDN Shield, etc.): open the page in a real browser, save the rendered HTML, then point the extractor at the file.
 
 ## Disable the LLM (deterministic only)
 
