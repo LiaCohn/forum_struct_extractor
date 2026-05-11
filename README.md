@@ -127,17 +127,14 @@ Combine `--debug` and `--show-llm-candidates` to print selectors, candidate list
 
 ---
 
-# Example runs (real output)
+# Example run (real output)
 
-Below are **actual** runs with the LLM enabled. Full `xpath` strings on candidates are long; the snippets show `id`, `role_hint`, `tag`, and `text` (see your terminal or use `--show-llm-candidates` for the complete JSON).
-
-## Example 1 — Russian XenForo (`whats_new.html`)
+Below is an **actual** live run against the brief's Altenen URL with the LLM enabled. Some thread titles on the source forum contain adult content, so candidate texts and preview titles are **redacted with `[redacted]`** below — the *structure* of the output is unchanged.
 
 ### Command
 
 ```bash
-cd chat_solutions
-python forum_extractor_hybrid.py --file ../whats_new.html --debug --show-llm-candidates
+python forum_extractor_hybrid.py --url https://altenens.is/whats-new/posts --debug --show-llm-candidates
 ```
 
 ### Detected selectors
@@ -163,55 +160,63 @@ python forum_extractor_hybrid.py --file ../whats_new.html --debug --show-llm-can
 }
 ```
 
-### Sample of LLM candidates (abbreviated)
+### Sample of LLM candidates (abbreviated, text redacted)
 
-| id  | role_hint            | tag  | text (excerpt) |
-|-----|----------------------|------|----------------|
-| c1  | date                 | time | 14 Янв 2026 |
-| c2  | date                 | time | 5 мин. назад |
-| c3  | possible_title_link  | a    | ✅ XMart - Маркетплейс готовых аккаунтов… |
-| c4  | possible_author_link | a    | Raccoonstock |
-| c5  | possible_title_link  | a    | 14 Янв 2026 (start-date link; same thread URL) |
-| c6  | link                 | a    | Прочие продажи и покупки (forum breadcrumb) |
+| id  | role_hint            | tag  | text (excerpt)                                  |
+|-----|----------------------|------|-------------------------------------------------|
+| c1  | date                 | time | `Today at 2:16 PM` (datetime: `2026-05-11T14:16:26+0100`) |
+| c2  | date                 | time | `A moment ago` (latest activity, datetime present)        |
+| c3  | possible_title_link  | a    | `[redacted thread title]` (thread URL)          |
+| c4  | possible_author_link | a    | `<username>` (class `username`)                 |
+| c5  | possible_title_link  | a    | `Today at 2:16 PM` (start-date link, same thread URL) |
+| c6  | link                 | a    | `[forum category]` (forum URL)                  |
+| c7  | possible_title_link  | a    | `A moment ago` (latest-activity link)           |
+| c8  | possible_author_link | a    | `<username>` (latest poster)                    |
+| c9  | possible_author_link | a    | `B` (single-letter avatar link)                 |
+| c10 | text                 | span | `<username>` (username span inside title link)  |
+| c11 | text                 | dt   | `Replies`                                       |
+| c12 | text                 | dd   | `41`                                            |
 
-The model picks **c3** for title/link (real thread title), **c4** for author (`username`), **c1** for publish date (`u-dt` on thread start), avoiding breadcrumb / “latest activity” links.
+The model picks **c3** for title/link (real thread title — not the start-date link c5, not the latest-activity link c7), **c4** for author (the visible `username` link in the row, not the single-letter avatar c9), and **c1** for publish date (the `u-dt` thread start time, not the “latest activity” time c2).
 
-### Preview (first rows)
+### Preview (first rows, titles redacted)
 
 ```json
 [
   {
-    "title": "✅ XMart - Маркетплейс готовых аккаунтов. Покупка и продажа.",
-    "author": "Raccoonstock",
-    "publish_date": "14 Янв 2026",
-    "link": "/threads/%E2%9C%85-xmart-%D0%9C%D0%B0%D1%80%D0%BA%D0%B5%D1%82%D0%BF%D0%BB%D0%B5%D0%B9%D1%81-%D0%B3%D0%BE%D1%82%D0%BE%D0%B2%D1%8B%D1%85-%D0%B0%D0%BA%D0%BA%D0%B0%D1%83%D0%BD%D1%82%D0%BE%D0%B2-%D0%9F%D0%BE%D0%BA%D1%83%D0%BF%D0%BA%D0%B0-%D0%B8-%D0%BF%D1%80%D0%BE%D0%B4%D0%B0%D0%B6%D0%B0.191889/"
+    "title": "[redacted thread title #1]",
+    "author": "<author_1>",
+    "publish_date": "Today at 2:16 PM",
+    "link": "https://altenens.is/threads/<slug>.2937902/"
   },
   {
-    "title": "Эксклюзивные и VIP тарифы от МТС, Мегафон, Теле2, Билайн",
-    "author": "Omark",
-    "publish_date": "8 Ноя 2025",
-    "link": "/threads/%D0%AD%D0%BA%D1%81%D0%BA%D0%BB%D1%8E%D0%B7%D0%B8%D0%B2%D0%BD%D1%8B%D0%B5-%D0%B8-vip-%D1%82%D0%B0%D1%80%D0%B8%D1%84%D1%8B-%D0%BE%D1%82-%D0%9C%D0%A2%D0%A1-%D0%9C%D0%B5%D0%B3%D0%B0%D1%84%D0%BE%D0%BD-%D0%A2%D0%B5%D0%BB%D0%B52-%D0%91%D0%B8%D0%BB%D0%B0%D0%B9%D0%BD.178542/"
+    "title": "[redacted thread title #2]",
+    "author": "<author_2>",
+    "publish_date": "Sep 25, 2025",
+    "link": "https://altenens.is/threads/<slug>.2847060/"
   },
   {
-    "title": "Заказать/купить рассылку Whatsap | SMS | Viber | Telegram. Инвайт в Telegram и Viber",
-    "author": "Raccoonstock",
-    "publish_date": "16 Фев 2025",
-    "link": "/threads/%D0%97%D0%B0%D0%BA%D0%B0%D0%B7%D0%B0%D1%82%D1%8C-%D0%BA%D1%83%D0%BF%D0%B8%D1%82%D1%8C-%D1%80%D0%B0%D1%81%D1%81%D1%8B%D0%BB%D0%BA%D1%83-whatsap-sms-viber-telegram-%D0%98%D0%BD%D0%B2%D0%B0%D0%B9%D1%82-%D0%B2-telegram-%D0%B8-viber.136287/"
+    "title": "[redacted thread title #3]",
+    "author": "<author_1>",
+    "publish_date": "May 30, 2025",
+    "link": "https://altenens.is/threads/<slug>.2756312/"
+  },
+  {
+    "title": "[redacted thread title #4]",
+    "author": "<author_1>",
+    "publish_date": "31 minutes ago",
+    "link": "https://altenens.is/threads/<slug>.2937946/"
+  },
+  {
+    "title": "[redacted thread title #5]",
+    "author": "<author_3>",
+    "publish_date": "Tuesday at 6:06 AM",
+    "link": "https://altenens.is/threads/<slug>.2934620/"
   }
 ]
 ```
 
----
-
-## Example 2 — XDA (deterministic only)
-
-For comparison, with the LLM off (same final XPaths on a standard XenForo row, no candidate dump):
-
-```bash
-python forum_extractor_hybrid.py --file ../xda_posts.html --no-llm --debug
-```
-
-Preview rows include real thread titles and `/t/...` links (see your saved `xda_posts.html` fixture).
+All five rows resolved every field (`title`, `author`, `publish_date`, `link`) — the validator passed without falling back to the deterministic path.
 
 ---
 
