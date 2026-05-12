@@ -11,6 +11,23 @@ The extractor is designed to work across different forum websites without hardco
 
 ---
 
+# Approach
+
+My first thought was the simplest possible AI-first design: fetch the page, strip the noise (`<script>`, `<style>`, `<svg>`, base64 attributes, HTML comments), and send the cleaned DOM to an LLM with one prompt asking for the 5 XPaths.
+
+I built that prototype (`forum_extractor_ai_first.py`, ~290 lines) and tested it on Groq's free tier. Two issues surfaced:
+
+- **Free-tier rate limits.** A real forum page, even after aggressive attribute pruning, is 20k+ tokens. Free Groq caps requests at 6k TPM for `llama-3.1-8b-instant` and 12k TPM for `llama-3.3-70b-versatile`, so the API rejects the call outright.
+- **Truncating to fit makes the model wrong.** Cutting the cleaned HTML to ~12k chars sometimes cuts before the model reaches the thread list — on the XDA fixture the model latched onto the top navigation menu instead of the forum rows. Even when it sees the right region, an 8B model produces plausible-but-broken selectors (e.g. `<a class="structItem-title">` when the DOM is `<div class="structItem-title"><a>`). Without a validator the script silently ships wrong XPaths.
+
+With a paid key (Groq Dev Tier, OpenAI, or Anthropic) the AI-first script would work directly — same code, no truncation, frontier reasoning catches structural details. Without one, AI-first is a non-starter on real forum pages.
+
+So this repo ships the **hybrid extractor** (`forum_extractor_hybrid.py`) as the primary solution: deterministic heuristics handle "find the repeating rows" (fast, free, reliable), the LLM only classifies a short candidate list (fits comfortably in any free tier), and a validator + deterministic fallback catches LLM mistakes. The AI-first script is kept in the repo as a side-by-side comparison.
+
+See "Design choices — why hybrid?" below for the engineering tradeoffs in more detail.
+
+---
+
 # Overview
 
 Given a page, `forum_extractor_hybrid.py`:
