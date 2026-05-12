@@ -286,6 +286,20 @@ It picks the best title link by class / href hints and text length, picks the fi
 
 ---
 
+# Design choices — why hybrid?
+
+The obvious alternative is to send the full rendered HTML to a frontier model and ask for the 5 XPaths in one shot. That works, but this codebase deliberately uses a hybrid heuristics + small-classifier-LLM design for a few reasons:
+
+- **Cost & rate limits.** Forum pages are commonly 200KB–2MB; a single page is tens to hundreds of thousands of tokens. With heuristics doing the heavy lifting, the LLM only sees a ~12-item candidate list (a few hundred tokens), so the script stays inside Groq's free-tier limits and would scale cheaply on a paid key.
+- **Plays to a small model's strengths.** `llama-3.1-8b-instant` is not reliable at writing valid XPath from raw HTML, but it *is* good at picking the right id from a short list of pre-extracted, role-hinted candidates. The "classification on IDs that already exist in the DOM" framing also means the LLM cannot hallucinate selectors.
+- **Determinism & fallback.** Steps 1–4 are pure heuristics and produce the same XPath every run. The LLM is only invoked when there is real ambiguity (which `<a>` is the title vs. the latest-activity link vs. the start-date link), and step 7 falls back to deterministic selectors if the LLM call raises, returns junk, or fails validation.
+- **Offline / no-key operation.** `--no-llm` still produces correct output on standard XenForo-style forums. Useful for CI, debugging, and when the API key is unavailable.
+- **Latency.** One Groq call ≈ 0.5–2s on a few-hundred-token prompt; a full-HTML call on a frontier model is several seconds. The hybrid path is faster on the common case.
+
+With a larger context budget and a frontier model (GPT-4-class / Claude Sonnet-class), a one-shot "HTML → JSON XPaths" prompt would also work and would be a few hundred lines shorter. The hybrid approach was chosen for cost, determinism, and the ability to fall back to pure heuristics — not as a workaround for any specific model.
+
+---
+
 # Notes
 
 - The test forums are XenForo-based, so they share patterns like `structItem`, `structItem-title`, `username`, `u-dt`. The extraction logic itself is structural, not URL-specific.
